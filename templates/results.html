@@ -1,0 +1,284 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Letterboxing Coach — Your Recommendations</title>
+    <link href="https://fonts.googleapis.com/css2?family=VT323&family=Rajdhani:wght@400;600;700&display=swap" rel="stylesheet">
+    <style>
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+
+        body {
+            font-family: 'Rajdhani', sans-serif;
+            background: #000;
+            color: #fff;
+            min-height: 100vh;
+        }
+
+        header {
+            background: #000;
+            border-bottom: 2px solid #ff6ec7;
+            padding: 1.5rem 1.5rem 1rem;
+            text-align: center;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .grid-lines {
+            position: absolute;
+            inset: 0;
+            background-image:
+                linear-gradient(rgba(255,110,199,0.08) 1px, transparent 1px),
+                linear-gradient(90deg, rgba(255,110,199,0.08) 1px, transparent 1px);
+            background-size: 32px 32px;
+            pointer-events: none;
+        }
+
+        .logo {
+            font-family: 'VT323', monospace;
+            font-size: 3rem;
+            color: #ff6ec7;
+            letter-spacing: 4px;
+            line-height: 1;
+            position: relative;
+            text-shadow: 3px 3px 0 #7df9ff;
+        }
+
+        .tagline {
+            font-size: 0.85rem;
+            color: #7df9ff;
+            letter-spacing: 3px;
+            text-transform: uppercase;
+            margin-top: 0.25rem;
+            position: relative;
+        }
+
+        .back {
+            display: inline-block;
+            margin-top: 0.75rem;
+            color: #ff6ec7;
+            text-decoration: none;
+            font-size: 0.8rem;
+            letter-spacing: 2px;
+            text-transform: uppercase;
+            position: relative;
+        }
+
+        .back:hover { text-decoration: underline; }
+
+        .summary {
+            background: #0a0a0a;
+            border-bottom: 1px solid #7df9ff;
+            padding: 0.6rem 1.5rem;
+            display: flex;
+            gap: 2rem;
+            flex-wrap: wrap;
+            font-size: 0.8rem;
+            letter-spacing: 1px;
+            color: #7df9ff;
+            text-transform: uppercase;
+        }
+
+        .summary strong { color: #ff6ec7; }
+
+        .container {
+            max-width: 900px;
+            margin: 1.5rem auto;
+            padding: 0 1rem;
+            display: flex;
+            flex-direction: column;
+            gap: 1rem;
+        }
+
+        .card {
+            background: #0a0a0a;
+            border: 1px solid #7df9ff;
+            border-left: 4px solid #ff6ec7;
+            border-radius: 4px;
+            display: flex;
+            gap: 1rem;
+            padding: 1rem;
+            position: relative;
+        }
+
+        .scanline {
+            position: absolute;
+            inset: 0;
+            background: repeating-linear-gradient(
+                0deg,
+                transparent,
+                transparent 2px,
+                rgba(0,0,0,0.15) 2px,
+                rgba(0,0,0,0.15) 4px
+            );
+            pointer-events: none;
+            border-radius: 4px;
+        }
+
+        .rank {
+            position: absolute;
+            top: 0.5rem;
+            right: 0.75rem;
+            font-family: 'VT323', monospace;
+            font-size: 1.8rem;
+            color: #ff6ec7;
+            opacity: 0.6;
+        }
+
+        .poster {
+            width: 80px;
+            min-width: 80px;
+            height: 120px;
+            object-fit: cover;
+            border: 1px solid #7df9ff;
+            border-radius: 2px;
+        }
+
+        .no-poster {
+            width: 80px;
+            min-width: 80px;
+            height: 120px;
+            background: #111;
+            border: 1px solid #7df9ff;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-family: 'VT323', monospace;
+            font-size: 0.85rem;
+            color: #333;
+            text-align: center;
+        }
+
+        .info { flex: 1; min-width: 0; }
+
+        .title {
+            font-size: 1.2rem;
+            font-weight: 700;
+            color: #fff;
+            letter-spacing: 1px;
+            line-height: 1.2;
+            margin-bottom: 0.15rem;
+            padding-right: 2.5rem;
+        }
+
+        .year { color: #7df9ff; font-weight: 400; }
+
+        .director {
+            font-size: 0.8rem;
+            color: #ff6ec7;
+            letter-spacing: 1px;
+            text-transform: uppercase;
+            margin-bottom: 0.5rem;
+        }
+
+        .genres {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 0.3rem;
+            margin-bottom: 0.6rem;
+        }
+
+        .genre {
+            background: transparent;
+            border: 1px solid #7df9ff;
+            color: #7df9ff;
+            font-size: 0.7rem;
+            padding: 0.1rem 0.4rem;
+            letter-spacing: 1px;
+            text-transform: uppercase;
+        }
+
+        .stats { display: flex; gap: 1.25rem; flex-wrap: wrap; }
+
+        .stat-val {
+            font-family: 'VT323', monospace;
+            font-size: 1.4rem;
+            color: #ff6ec7;
+            line-height: 1;
+        }
+
+        .stat-label {
+            font-size: 0.65rem;
+            color: #555;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+
+        footer {
+            text-align: center;
+            padding: 1.5rem;
+            border-top: 1px solid #111;
+            font-size: 0.7rem;
+            color: #333;
+            letter-spacing: 1px;
+            margin-top: 1rem;
+        }
+
+        @media (max-width: 600px) {
+            .card { flex-direction: column; }
+            .poster, .no-poster { width: 100%; min-width: unset; height: 180px; }
+            .poster { object-fit: cover; }
+        }
+    </style>
+</head>
+<body>
+    <header>
+        <div class="grid-lines"></div>
+        <div class="logo">LETTERBOXING COACH</div>
+        <div class="tagline">Your personalised recommendations &mdash; {{ film_count }} films analysed</div>
+        <a class="back" href="/">&#8592; Try another export</a>
+    </header>
+
+    <div class="summary">
+        <div>Films analysed: <strong>{{ film_count }}</strong></div>
+        <div>Recommendations: <strong>{{ films | length }}</strong></div>
+        <div>Generated: <strong>{{ generated_at }}</strong></div>
+    </div>
+
+    <div class="container">
+        {% for film in films %}
+        <div class="card">
+            <div class="scanline"></div>
+            <div class="rank">#{{ loop.index }}</div>
+
+            {% if film.poster_path %}
+            <img class="poster" src="https://image.tmdb.org/t/p/w300{{ film.poster_path }}" alt="{{ film.title }} poster">
+            {% else %}
+            <div class="no-poster">NO<br>POSTER</div>
+            {% endif %}
+
+            <div class="info">
+                <div class="title">{{ film.title }} <span class="year">({{ film.year }})</span></div>
+
+                {% if film.director %}
+                <div class="director">dir. {{ film.director }}</div>
+                {% endif %}
+
+                <div class="genres">
+                    {% for genre in film.genres %}
+                    <span class="genre">{{ genre }}</span>
+                    {% endfor %}
+                </div>
+
+                <div class="stats">
+                    <div>
+                        <div class="stat-val">{{ film.neighbor_count }}</div>
+                        <div class="stat-label">neighbors loved it</div>
+                    </div>
+                    <div>
+                        <div class="stat-val">{{ "%.2f"|format(film.avg_neighbor_rating) }}</div>
+                        <div class="stat-label">avg neighbor rating</div>
+                    </div>
+                    <div>
+                        <div class="stat-val">{{ film.affinity_score }}</div>
+                        <div class="stat-label">affinity score</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        {% endfor %}
+    </div>
+
+    <footer>{{ tmdb_attribution }}</footer>
+</body>
+</html>

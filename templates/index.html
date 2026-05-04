@@ -1,0 +1,237 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Letterboxing Coach</title>
+    <link href="https://fonts.googleapis.com/css2?family=VT323&family=Rajdhani:wght@400;600;700&display=swap" rel="stylesheet">
+    <style>
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+
+        body {
+            font-family: 'Rajdhani', sans-serif;
+            background: #000;
+            color: #fff;
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .grid-bg {
+            position: fixed;
+            inset: 0;
+            background-image:
+                linear-gradient(rgba(255,110,199,0.05) 1px, transparent 1px),
+                linear-gradient(90deg, rgba(255,110,199,0.05) 1px, transparent 1px);
+            background-size: 32px 32px;
+            pointer-events: none;
+        }
+
+        .card {
+            background: #0a0a0a;
+            border: 1px solid #7df9ff;
+            border-top: 4px solid #ff6ec7;
+            border-radius: 4px;
+            padding: 2.5rem 2rem;
+            max-width: 480px;
+            width: 90%;
+            text-align: center;
+            position: relative;
+            z-index: 1;
+        }
+
+        .logo {
+            font-family: 'VT323', monospace;
+            font-size: 3rem;
+            color: #ff6ec7;
+            letter-spacing: 4px;
+            line-height: 1;
+            text-shadow: 3px 3px 0 #7df9ff;
+            margin-bottom: 0.25rem;
+        }
+
+        .subtitle {
+            color: #7df9ff;
+            font-size: 0.8rem;
+            letter-spacing: 2px;
+            text-transform: uppercase;
+            margin-bottom: 2rem;
+        }
+
+        .instructions {
+            background: #000;
+            border: 1px solid #222;
+            border-left: 3px solid #7df9ff;
+            padding: 1rem;
+            margin-bottom: 1.5rem;
+            text-align: left;
+            font-size: 0.85rem;
+            color: #aaa;
+            line-height: 1.8;
+        }
+
+        .instructions a {
+            color: #ff6ec7;
+            text-decoration: none;
+        }
+
+        .instructions a:hover { text-decoration: underline; }
+
+        .instructions strong { color: #7df9ff; }
+
+        {% if error %}
+        .error {
+            background: #1a0000;
+            border: 1px solid #ff6ec7;
+            padding: 0.75rem 1rem;
+            margin-bottom: 1.5rem;
+            font-size: 0.85rem;
+            color: #ff6ec7;
+            letter-spacing: 1px;
+            text-align: left;
+        }
+        {% endif %}
+
+        .upload-area {
+            border: 1px dashed #7df9ff;
+            padding: 1.5rem;
+            margin-bottom: 1.25rem;
+            cursor: pointer;
+            transition: border-color 0.2s, background 0.2s;
+        }
+
+        .upload-area:hover {
+            border-color: #ff6ec7;
+            background: #0d0d0d;
+        }
+
+        .upload-area input[type="file"] { display: none; }
+
+        .upload-label {
+            cursor: pointer;
+            color: #555;
+            font-size: 0.9rem;
+            letter-spacing: 1px;
+            text-transform: uppercase;
+        }
+
+        .upload-label span { color: #7df9ff; }
+
+        .filename {
+            margin-top: 0.5rem;
+            font-size: 0.85rem;
+            color: #ff6ec7;
+            font-family: 'VT323', monospace;
+            letter-spacing: 1px;
+            min-height: 1.2rem;
+        }
+
+        button {
+            background: #ff6ec7;
+            color: #000;
+            border: none;
+            padding: 0.75rem 2rem;
+            font-family: 'Rajdhani', sans-serif;
+            font-size: 1rem;
+            font-weight: 700;
+            letter-spacing: 3px;
+            text-transform: uppercase;
+            cursor: pointer;
+            width: 100%;
+            transition: background 0.2s;
+        }
+
+        button:hover { background: #ff45b5; }
+
+        button:disabled {
+            background: #222;
+            color: #444;
+            cursor: not-allowed;
+        }
+
+        footer {
+            margin-top: 1.5rem;
+            color: #222;
+            font-size: 0.7rem;
+            text-align: center;
+            letter-spacing: 1px;
+            position: relative;
+            z-index: 1;
+            max-width: 480px;
+            width: 90%;
+        }
+    </style>
+</head>
+<body>
+    <div class="grid-bg"></div>
+
+    <div class="card">
+        <div class="logo">LETTERBOXING COACH</div>
+        <div class="subtitle">Film recommendations from your taste</div>
+
+        {% if error %}
+        <div class="error">&#9888; {{ error }}</div>
+        {% endif %}
+
+        <div class="instructions">
+            <strong>How to get your export:</strong><br>
+            1. Go to <a href="https://letterboxd.com/settings/data/" target="_blank">letterboxd.com/settings/data</a><br>
+            2. Click <strong>Export Your Data</strong><br>
+            3. Unzip the download and upload <strong>ratings.csv</strong> below
+        </div>
+
+        <form action="/upload" method="POST" enctype="multipart/form-data">
+            <div class="upload-area" onclick="document.getElementById('csv-input').click()">
+                <label class="upload-label">
+                    <input type="file" id="csv-input" name="csv_file" accept=".csv" onchange="updateFilename(this)">
+                    <span>Choose a file</span> or drag and drop<br>
+                    <small>ratings.csv from your Letterboxd export</small>
+                </label>
+                <div class="filename" id="filename-display"></div>
+            </div>
+
+            <button type="submit" id="submit-btn" disabled>Get Recommendations</button>
+        </form>
+    </div>
+
+    <footer>{{ tmdb_attribution }}</footer>
+
+    <script>
+        function updateFilename(input) {
+            const display = document.getElementById('filename-display');
+            const btn = document.getElementById('submit-btn');
+            if (input.files && input.files[0]) {
+                display.textContent = input.files[0].name;
+                btn.disabled = false;
+            } else {
+                display.textContent = '';
+                btn.disabled = true;
+            }
+        }
+
+        const uploadArea = document.querySelector('.upload-area');
+
+        uploadArea.addEventListener('dragover', (e) => {
+            e.preventDefault();
+            uploadArea.style.borderColor = '#ff6ec7';
+        });
+
+        uploadArea.addEventListener('dragleave', () => {
+            uploadArea.style.borderColor = '#7df9ff';
+        });
+
+        uploadArea.addEventListener('drop', (e) => {
+            e.preventDefault();
+            uploadArea.style.borderColor = '#7df9ff';
+            const file = e.dataTransfer.files[0];
+            if (file) {
+                document.getElementById('csv-input').files = e.dataTransfer.files;
+                document.getElementById('filename-display').textContent = file.name;
+                document.getElementById('submit-btn').disabled = false;
+            }
+        });
+    </script>
+</body>
+</html>
