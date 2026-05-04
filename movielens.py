@@ -2,8 +2,8 @@ import pandas as pd
 import numpy as np
 from sklearn.metrics.pairwise import cosine_similarity
 import os
+from config import MOVIELENS_DIR, MIN_USER_RATINGS, N_NEIGHBORS, N_CANDIDATES
 
-MOVIELENS_DIR = "data/ml-25m"
 MOVIES_PATH = os.path.join(MOVIELENS_DIR, "movies.csv")
 RATINGS_PATH = os.path.join(MOVIELENS_DIR, "ratings.csv")
 

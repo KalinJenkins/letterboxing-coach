@@ -2,13 +2,10 @@ import requests
 import json
 import os
 import time
-from dotenv import load_dotenv
+from config import TMDB_API_KEY, TMDB_IMAGE_BASE
 
-load_dotenv()
-
-TMDB_API_KEY = os.getenv("TMDB_API_KEY")
-BASE_URL = "https://api.themoviedb.org/3"
 CACHE_DIR = "cache"
+BASE_URL = "https://api.themoviedb.org/3"
 
 def _ensure_cache():
     os.makedirs(CACHE_DIR, exist_ok=True)

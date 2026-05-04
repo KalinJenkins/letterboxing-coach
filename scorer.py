@@ -1,4 +1,5 @@
 from collections import Counter
+from config import WEIGHTS, TASTE_THRESHOLD
 
 # How much each attribute contributes to the final score
 WEIGHTS = {
