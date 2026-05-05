@@ -1,3 +1,4 @@
+import re
 import pandas as pd
 import numpy as np
 from sklearn.metrics.pairwise import cosine_similarity
@@ -23,30 +24,66 @@ def load_movielens():
     return movies, ratings
 
 
+def clean_movielens_title(raw_title: str) -> list[str]:
+    """
+    Takes a raw MovieLens title like "Seven (a.k.a. Se7en) (1995)"
+    and returns a list of all title variants to try matching against,
+    with the year stripped from each.
+    """
+    # Strip year at end
+    title = re.sub(r'\s*\(\d{4}\)$', '', raw_title).strip()
+
+    variants = []
+
+    # Extract all a.k.a. alternatives
+    aka_matches = re.findall(r'\(a\.k\.a\.\s*([^)]+)\)', title)
+
+    # Strip all a.k.a. blocks to get the primary title
+    primary = re.sub(r'\s*\(a\.k\.a\.[^)]+\)', '', title).strip()
+    variants.append(primary.lower())
+
+    for aka in aka_matches:
+        variants.append(aka.strip().lower())
+
+    return variants
+
+
 def match_films_to_movielens(user_films: list[dict], movies_df: pd.DataFrame) -> dict:
+    """
+    Matches user's Letterboxd films to MovieLens movie IDs by title and year.
+    Returns a dict of {movieId: user_rating}.
+    """
     matched = {}
     unmatched = []
+
+    # Pre-compute all title variants for every MovieLens film
+    print("Pre-computing title variants...")
+    movies_df["parsed_year"] = movies_df["title"].str.extract(r'\((\d{4})\)$')
+
+    title_index = {}
+    for _, row in movies_df.iterrows():
+        variants = clean_movielens_title(row["title"])
+        year = row["parsed_year"]
+        for variant in variants:
+            key_with_year = (variant, str(year))
+            key_without_year = (variant, None)
+            if key_with_year not in title_index:
+                title_index[key_with_year] = row["movieId"]
+            if key_without_year not in title_index:
+                title_index[key_without_year] = row["movieId"]
 
     for film in user_films:
         title = film["title"].strip().lower()
         year = str(film["year"]).strip()
 
-        # Extract year from MovieLens title format "Movie Title (1999)"
-        movies_df["parsed_year"] = movies_df["title"].str.extract(r'\((\d{4})\)$')
-        movies_df["parsed_title"] = movies_df["title"].str.replace(r'\s*\(\d{4}\)$', '', regex=True).str.strip().str.lower()
-
-        # Try matching on title + year first
-        match = movies_df[
-            (movies_df["parsed_title"] == title) &
-            (movies_df["parsed_year"] == year)
-        ]
+        # Try title + year first
+        movie_id = title_index.get((title, year))
 
         # Fall back to title only
-        if match.empty:
-            match = movies_df[movies_df["parsed_title"] == title]
+        if not movie_id:
+            movie_id = title_index.get((title, None))
 
-        if not match.empty:
-            movie_id = match.iloc[0]["movieId"]
+        if movie_id:
             matched[movie_id] = film["rating"]
         else:
             unmatched.append(film["title"])
@@ -54,9 +91,9 @@ def match_films_to_movielens(user_films: list[dict], movies_df: pd.DataFrame) ->
     print(f"Matched {len(matched)} films to MovieLens ({len(unmatched)} unmatched)")
     return matched
 
-
-def get_candidates(user_films: list[dict]) -> list[dict]:
-    movies_df, ratings_df = load_movielens()
+def get_candidates(user_films: list[dict], movies_df=None, ratings_df=None) -> list[dict]:
+    if movies_df is None or ratings_df is None:
+        movies_df, ratings_df = load_movielens()
 
     # Match user films to MovieLens IDs
     user_matched = match_films_to_movielens(user_films, movies_df)

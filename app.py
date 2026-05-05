@@ -1,7 +1,7 @@
 import os
 import uuid
 from datetime import datetime
-from flask import Flask, render_template, request, redirect, url_for
+from flask import Flask, render_template, request
 from config import (
     TMDB_ATTRIBUTION,
     UPLOAD_FOLDER,
@@ -10,14 +10,18 @@ from config import (
     TOP_N_RESULTS
 )
 from parser import parse_letterboxd_csv
-from tmdb_client import enrich_films
-from movielens import get_candidates
+from tmdb_client import enrich_films, get_film_metadata, search_film
+from movielens import load_movielens, get_candidates
 from scorer import rank_candidates
-from tmdb_client import get_film_metadata, search_film
 
 app = Flask(__name__)
 app.secret_key = SECRET_KEY
 app.config["UPLOAD_FOLDER"] = UPLOAD_FOLDER
+
+# Load MovieLens dataset once at startup
+print("Loading MovieLens dataset into memory...")
+movies_df, ratings_df = load_movielens()
+print("MovieLens dataset ready.")
 
 
 def allowed_file(filename: str) -> bool:
@@ -37,7 +41,6 @@ def index():
 def upload():
     ensure_upload_folder()
 
-    # Validate file was included
     if "csv_file" not in request.files:
         return render_template("index.html",
                                error="No file selected.",
@@ -55,13 +58,11 @@ def upload():
                                error="Please upload a CSV file.",
                                tmdb_attribution=TMDB_ATTRIBUTION)
 
-    # Save uploaded file temporarily with unique name
     temp_filename = f"{uuid.uuid4().hex}.csv"
     temp_path = os.path.join(UPLOAD_FOLDER, temp_filename)
     file.save(temp_path)
 
     try:
-        # Step 1 — Parse the CSV
         print("Step 1: Parsing CSV...")
         user_films = parse_letterboxd_csv(temp_path)
 
@@ -70,20 +71,17 @@ def upload():
                                    error="No rated films found in your CSV. Make sure you uploaded ratings.csv.",
                                    tmdb_attribution=TMDB_ATTRIBUTION)
 
-        # Step 2 — Enrich with TMDB metadata
         print("Step 2: Enriching with TMDB metadata...")
         enriched_films = enrich_films(user_films)
 
-        # Step 3 — Get collaborative filtering candidates
         print("Step 3: Finding collaborative filtering candidates...")
-        candidates = get_candidates(user_films)
+        candidates = get_candidates(user_films, movies_df=movies_df, ratings_df=ratings_df)
 
         if not candidates:
             return render_template("index.html",
                                    error="Could not find enough matching films in MovieLens. Try again with a larger export.",
                                    tmdb_attribution=TMDB_ATTRIBUTION)
 
-        # Step 4 — Enrich candidates with TMDB metadata
         print("Step 4: Enriching candidates with TMDB metadata...")
         candidate_metadata = []
         for candidate in candidates:
@@ -93,11 +91,9 @@ def upload():
                 if meta:
                     candidate_metadata.append(meta)
 
-        # Step 5 — Score and rank
         print("Step 5: Scoring and ranking...")
         ranked = rank_candidates(candidates, enriched_films, candidate_metadata)
 
-        # Step 6 — Render results
         return render_template(
             "results.html",
             films=ranked[:TOP_N_RESULTS],
@@ -113,7 +109,6 @@ def upload():
                                tmdb_attribution=TMDB_ATTRIBUTION)
 
     finally:
-        # Always clean up the temp file
         if os.path.exists(temp_path):
             os.remove(temp_path)
 
